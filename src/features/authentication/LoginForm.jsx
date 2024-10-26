@@ -5,16 +5,24 @@ import Input from "../../ui/Input";
 import SpinnerMini from "../../ui/SpinnerMini";
 
 import FormRowVertical from "../../ui/FormRowVertical";
-import { useLoing } from "./useLogin";
+import { useLogin } from "./useLogin";
 
 function LoginForm() {
   const [email, setEmail] = useState("jonas@example.com");
   const [password, setPassword] = useState("password");
-  const { login, isLoading } = useLoing();
+  const { login, isLoading } = useLogin();
   function handleSubmit(e) {
     e.preventDefault();
     if (!email || !password) return;
-    login({ email, password });
+    login(
+      { email, password },
+      {
+        onSettled: () => {
+          setEmail("");
+          setPassword("");
+        },
+      }
+    );
   }
 
   return (
