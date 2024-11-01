@@ -1,7 +1,35 @@
 import supabase from "./supabase.js";
 
-// 0:30 394
-export async function signup() {}
+export async function signup({ fullName, email, password }) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        fullName,
+        avatar: "",
+      },
+    },
+  });
+
+  let authError = null;
+
+  if (data?.user && !data.user?.identities.length) {
+    authError = {
+      name: "AuthApiError",
+      message: "This email has already been registered",
+    };
+  } else if (error) {
+    authError = {
+      name: error.name,
+      message: error.message,
+    };
+  }
+
+  if (authError) throw new Error(authError.message);
+
+  return data;
+}
 
 export async function login({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -34,4 +62,26 @@ export async function logout() {
   const { error } = await supabase.auth.signOut();
 
   if (error) throw new Error(error.message);
+}
+
+export async function updateCurrentUser({ password, fullName, avatar }) {
+  let updateData;
+  if (password) updateData = { password };
+  if (fullName) updateData = { data: { fullName } };
+
+  // 1. Update password OR fullName
+  const { data, error } = await supabase.auth.updateUser(updateData);
+  if (error) throw new Error(error.message);
+  if (!avatar) return data;
+
+  // 2. Upload the avatar image
+  const fileName = `avatar-${data.user.id}-${Math.random()}`;
+
+  const { error: storageError } = await supabase.storage
+    .from("avatars")
+    .upload(fileName, avatar);
+
+  if (storageError) throw new Error(storageError.message);
+
+  // 3. Update avatar in the user
 }
